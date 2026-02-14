@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Mahnoor ❤️</title>
+	<style>
+		:root{
+			--accent:#ff2e63;
+			--card-bg: rgba(255,255,255,0.12);
+			--glass-blur: 8px;
+		}
+
+		html,body{height:100%;}
+		body{
+			margin:0;
+			font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial;
+			background: linear-gradient(-45deg,#ff758c,#ff7eb3,#ffb199,#ff0844);
+			background-size:400% 400%;
+			animation:gradient 12s ease infinite;
+			display:flex;
+			align-items:center;
+			justify-content:center;
+			color: #fff;
+			-webkit-font-smoothing:antialiased;
+			text-rendering:optimizeLegibility;
+		}
+
+		@keyframes gradient{
+			0%{background-position:0% 50%;}
+			50%{background-position:100% 50%;}
+			100%{background-position:0% 50%;}
+		}
+
+		/* Respect prefers-reduced-motion */
+		@media (prefers-reduced-motion: reduce){
+			* { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+		}
+
+		.wrap{
+			position:relative;
+			z-index:1;
+			width:min(900px, 94%);
+			padding:28px;
+			border-radius:16px;
+			background:var(--card-bg);
+			backdrop-filter: blur(var(--glass-blur));
+			box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+			text-align:center;
+		}
+
+		h1{font-size:2.1rem; margin:0 0 8px;}
+		p{margin:0 0 18px; font-size:1.05rem; line-height:1.5;}
+		h2{margin:10px 0; font-weight:600}
+
+		.controls{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:12px}
+
+		button{
+			padding:10px 22px;
+			font-size:1rem;
+			border-radius:999px;
+			border:0;
+			cursor:pointer;
+			transition: transform .18s ease, box-shadow .18s ease;
+			box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+		}
+
+		button:focus{outline:3px solid rgba(255,255,255,0.18); outline-offset:4px}
+
+		#yes{ background:#fff; color:var(--accent); }
+		#yes:hover{ transform:translateY(-3px) scale(1.03); }
+
+		#no{ background: rgba(0,0,0,0.45); color:#fff; }
+
+		.meter{ display:flex; gap:8px; justify-content:center; align-items:center; margin-top:14px }
+
+		.heart{ position:fixed; top:-10vh; font-size:18px; pointer-events:none; z-index:0; opacity:.9 }
+
+		.firework{ position:fixed; left:50%; top:50%; width:6px; height:6px; background: #fff; border-radius:50%; pointer-events:none }
+
+		/* pulse heart */
+		.pulse-heart{ display:inline-block; transform-origin:center; }
+		@keyframes pulse{ 0%{transform:scale(1)}50%{transform:scale(1.22)}100%{transform:scale(1)} }
+		.pulse-heart{ animation: pulse 1.2s ease-in-out infinite; }
+
+		/* typewriter */
+		#intro{ font-size:0.98rem; opacity:0.95 }
+		.typewriter span{ border-right:2px solid rgba(255,255,255,0.6); padding-right:4px }
+
+		/* floating compliments */
+		.compliment{ position:fixed; pointer-events:none; color:rgba(255,255,255,0.95); font-weight:600; text-shadow:0 6px 18px rgba(0,0,0,0.18) }
+
+		/* click sparkles */
+		.spark{ position:fixed; width:8px; height:8px; background: #fff; border-radius:50%; pointer-events:none; mix-blend-mode:screen }
+
+		#confetti-canvas{ position:fixed; inset:0; z-index:0; pointer-events:none }
+
+		#player{ margin-top:12px }
+
+		@media (max-width:420px){
+			h1{font-size:1.5rem}
+			p{font-size:0.95rem}
+		}
+	</style>
+</head>
+<body>
+
+	<div class="wrap" role="main" aria-labelledby="title">
+		<h1 id="title">Mahnoor <span class="pulse-heart" aria-hidden="true">❤️</span></h1>
+        <div id="intro" aria-hidden="true" style="margin-top:8px;color:rgba(255,255,255,0.9);"></div>
+		<p>
+			Mahnoor... tum sirf meri life ka part nahi ho 💕
+			Tum meri smile ka reason ho 😊
+			Meri har dua ka best answer ho 🤍
+			Aur honestly... meri favorite notification ho 📱💖
+		</p>
+
+		<h2>Will you be my Valentine? 💘</h2>
+
+		<div class="controls">
+			<button id="yes" type="button" aria-label="Yes, I will" onclick="celebrate(event)">YES 💖</button>
+			<button id="no" type="button" aria-label="No, I won't" onclick="moveNo(event)">NO 😈</button>
+		</div>
+
+		<div class="meter" aria-live="polite">
+			<div id="result" style="font-weight:600"></div>
+		</div>
+
+		<div id="player">
+			<audio id="bg-audio" loop>
+				<source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" type="audio/mpeg">
+				Your browser does not support the audio element.
+			</audio>
+			<div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
+				<button id="play" type="button">Play ♫</button>
+				<button id="pause" type="button">Pause ◼</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- full-screen canvas for confetti -->
+	<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+
+	<script>
+		(function(){
+			const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			const body = document.body;
+			const resultEl = document.getElementById('result');
+			const audio = document.getElementById('bg-audio');
+			const canvas = document.getElementById('confetti-canvas');
+			let ctx, cw, ch;
+
+			function resizeCanvas(){
+				if(!canvas) return;
+				cw = canvas.width = window.innerWidth;
+				ch = canvas.height = window.innerHeight;
+				ctx = canvas.getContext('2d');
+			}
+			resizeCanvas();
+			window.addEventListener('resize', resizeCanvas);
+
+			// Typewriter intro
+			const introEl = document.getElementById('intro');
+			const introText = "You're already my favorite... and now you won't be able to look away ✨";
+			function typeIntro(){
+				if(!introEl) return;
+				introEl.classList.add('typewriter');
+				let i=0;
+				const speed = prefersReduced ? 1 : 40;
+				const t = setInterval(()=>{
+					introEl.textContent = introText.slice(0,i);
+					i++;
+					if(i>introText.length){ clearInterval(t); introEl.classList.remove('typewriter'); }
+				}, speed);
+			}
+
+			// Floating compliments
+			const compliments = ["Tum meri smile ho","Dil se pyaar","Tum hi to ho","Meri har khushi"];
+			function floatCompliment(){
+				if(prefersReduced) return;
+				const c = document.createElement('div');
+				c.className = 'compliment';
+				c.textContent = compliments[Math.floor(Math.random()*compliments.length)];
+				const left = Math.random()*80 + 10;
+				c.style.left = left + 'vw';
+				c.style.top = (110) + 'vh';
+				c.style.fontSize = (12 + Math.random()*14) + 'px';
+				document.body.appendChild(c);
+				requestAnimationFrame(()=>{ c.style.transition = 'transform 6s linear, opacity 6s linear'; c.style.transform = 'translateY(-140vh)'; c.style.opacity='0'; });
+				setTimeout(()=>c.remove(), 7000);
+			}
+
+			// initial floats
+			setInterval(floatCompliment, prefersReduced ? 999999 : 3500);
+			setTimeout(floatCompliment, 900);
+
+			// click sparkles
+			function makeSpark(x,y){
+				if(prefersReduced) return;
+				const s = document.createElement('div');
+				s.className = 'spark';
+				s.style.left = (x-4) + 'px';
+				s.style.top = (y-4) + 'px';
+				s.style.background = ['#fff','#ffd066','#ff8fab','#8bd3ff'][Math.floor(Math.random()*4)];
+				document.body.appendChild(s);
+				requestAnimationFrame(()=>{ s.style.transition='transform .9s cubic-bezier(.2,.8,.2,1), opacity .9s'; s.style.transform='translateY(-80px) scale(.2)'; s.style.opacity='0'; });
+				setTimeout(()=>s.remove(), 900);
+			}
+
+			window.addEventListener('click', function(ev){ makeSpark(ev.clientX, ev.clientY); });
+
+			// Confetti simple particles
+			function confettiBurst(){
+				if(prefersReduced || !ctx) return;
+				const pieces = 90;
+				const particles = [];
+				for(let i=0;i<pieces;i++){
+					particles.push({
+						x: cw/2, y: ch/2,
+						vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8 - 2,
+						w: 6 + Math.random()*8,
+						h: 8 + Math.random()*10,
+						c: ['#ff5e7a','#ffd066','#ff8fab','#8bd3ff'][Math.floor(Math.random()*4)]
+					});
+				}
+
+				let t0 = performance.now();
+				function frame(now){
+					const dt = (now - t0)/16.666; t0 = now;
+					ctx.clearRect(0,0,cw,ch);
+					for(let p of particles){
+						p.vy += 0.15 * dt;
+						p.x += p.vx * dt; p.y += p.vy * dt;
+						ctx.fillStyle = p.c;
+						ctx.fillRect(p.x, p.y, p.w, p.h);
+					}
+					if(particles[0].y < ch + 200){ requestAnimationFrame(frame); } else { ctx.clearRect(0,0,cw,ch); }
+				}
+				requestAnimationFrame(frame);
+			}
+
+			// Create gentle falling hearts if motion allowed
+			if(!prefersReduced){
+				for(let i=0;i<12;i++){
+					const h = document.createElement('div');
+					h.className = 'heart';
+					h.textContent = '💕';
+					const left = Math.random()*100;
+					h.style.left = left + 'vw';
+					h.style.fontSize = (12 + Math.random()*22) + 'px';
+					body.appendChild(h);
+					requestAnimationFrame(()=>{ h.style.transition = 'transform ' + (7 + Math.random()*6) + 's linear'; h.style.transform = 'translateY(130vh)'; });
+				}
+			}
+
+			// NO button movement
+			window.moveNo = function(e){
+				const btn = document.getElementById('no');
+				const padding = 12;
+				const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+				const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+				const w = btn.offsetWidth, h = btn.offsetHeight;
+				const x = Math.random()*(vw - w - padding*2) + padding;
+				const y = Math.random()*(vh - h - padding*2) + padding;
+				btn.style.position = 'fixed';
+				btn.style.left = x + 'px';
+				btn.style.top = y + 'px';
+			};
+
+			// Celebrate: message, confetti and audio
+			window.celebrate = function(e){
+				resultEl.textContent = 'YAYYY 💖 I knew it! 💕';
+				confettiBurst();
+				if(!prefersReduced){
+					// small click-like particles
+					for(let i=0;i<12;i++){ makeSpark(window.innerWidth/2 + (Math.random()-0.5)*80, window.innerHeight/2 + (Math.random()-0.5)*80); }
+				}
+				try{ audio.volume = 0.75; audio.play(); }catch(e){}
+			};
+
+			// Audio controls
+			document.getElementById('play').addEventListener('click', ()=>{ audio.play(); });
+			document.getElementById('pause').addEventListener('click', ()=>{ audio.pause(); });
+
+			// Start typewriter
+			setTimeout(typeIntro, 500);
+
+			// Try to start audio quietly
+			try{ audio.volume = 0.15; audio.play().catch(()=>{}); }catch(e){}
+		})();
+	</script>
+
+</body>
+</html>
